@@ -2,16 +2,9 @@ import express from "express";
 import { WebSocketServer } from "ws";
 import { createConnection } from "./dbconfig.js";
 import cors from "cors";
-import {
-    getSensors,
-    logSensorData,
-    updateSensorStatus,
-    fetchSensorRanges,
-    fetchLightDuration,
-    updateLedStripStatus,
-    fetchLedStripId,
-    fetchColourRgb,
-} from "./controllers.js";  // Assuming you have all functions in one file
+import sensorRoutes from "./routes/sensorRoutes.js";
+import ledstripRoutes from "./routes/ledstripRoutes.js";
+import otherRoutes from "./routes/otherRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -28,48 +21,10 @@ const init = async () => {
         // MySQL connection setup
         connection = await createConnection();
 
-        // Handle WebSocket connections
-        wss.on('connection', (ws) => {
-            console.log('New client connected');
-
-            ws.on('message', async (message) => {
-                const data = JSON.parse(message);
-                const { action, payload } = data;
-
-                switch (action) {
-                    case 'getSensors':
-                        await getSensors(ws);
-                        break;
-                    case 'logSensorData':
-                        await logSensorData(ws, payload);
-                        break;
-                    case 'updateSensorStatus':
-                        await updateSensorStatus(ws, payload);
-                        break;
-                    case 'fetchSensorRanges':
-                        await fetchSensorRanges(ws);
-                        break;
-                    case 'fetchLightDuration':
-                        await fetchLightDuration(ws);
-                        break;
-                    case 'updateLedStripStatus':
-                        await updateLedStripStatus(ws, payload);
-                        break;
-                    case 'fetchLedStripId':
-                        await fetchLedStripId(ws, payload);
-                        break;
-                    case 'fetchColourRgb':
-                        await fetchColourRgb(ws, payload);
-                        break;
-                    default:
-                        console.error('Unknown action:', action);
-                }
-            });
-
-            ws.on('close', () => {
-                console.log('Client disconnected');
-            });
-        });
+        // Initialize routes
+        sensorRoutes(wss, connection);
+        ledstripRoutes(wss, connection);
+        otherRoutes(wss, connection);
 
         app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
