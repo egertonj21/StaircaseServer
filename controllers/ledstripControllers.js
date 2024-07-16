@@ -78,3 +78,85 @@ export const fetchColourRgb = async (ws, connection, payload) => {
         ws.send(JSON.stringify({ action: 'fetchColourRgb', error: "Failed to fetch colour RGB" }));
     }
 };
+
+export const updateSensorLightColour = async (ws, connection, payload) => {
+    const { LED_strip_ID, range_ID, colour_ID } = payload;
+
+    if (LED_strip_ID === undefined || range_ID === undefined || colour_ID === undefined) {
+        console.error("Invalid input data: LED_strip_ID, range_ID, or colour_ID is undefined");
+        ws.send(JSON.stringify({ action: 'updateSensorLightColour', error: "Invalid input data: LED_strip_ID, range_ID, or colour_ID is undefined" }));
+        return;
+    }
+
+    try {
+        const [rows] = await connection.execute(
+            `SELECT 1 FROM sensor_light WHERE LED_strip_ID = ? AND range_ID = ?`,
+            [LED_strip_ID, range_ID]
+        );
+
+        if (rows.length > 0) {
+            await connection.execute(
+                `UPDATE sensor_light SET colour_ID = ? WHERE LED_strip_ID = ? AND range_ID = ?`,
+                [colour_ID, LED_strip_ID, range_ID]
+            );
+            ws.send(JSON.stringify({ action: 'updateSensorLightColour', message: "Sensor light colour updated successfully" }));
+        } else {
+            await connection.execute(
+                `INSERT INTO sensor_light (LED_strip_ID, range_ID, colour_ID) VALUES (?, ?, ?)`,
+                [LED_strip_ID, range_ID, colour_ID]
+            );
+            ws.send(JSON.stringify({ action: 'updateSensorLightColour', message: "Sensor light colour inserted successfully" }));
+        }
+    } catch (error) {
+        console.error("Failed to update sensor light colour:", error);
+        ws.send(JSON.stringify({ action: 'updateSensorLightColour', error: "Failed to update sensor light colour" }));
+    }
+};
+
+export const fetchInitialLedData = async (ws, connection) => {
+    try {
+        const [ledStrips, ranges, colours, sensorLights] = await Promise.all([
+            connection.execute("SELECT * FROM LED_strip"),
+            connection.execute("SELECT * FROM sensor_range"),
+            connection.execute("SELECT * FROM colour"),
+            connection.execute("SELECT * FROM sensor_light")
+        ]);
+
+        ws.send(JSON.stringify({
+            action: 'fetch_initial_led_data',
+            ledStrips: ledStrips[0],
+            ranges: ranges[0],
+            colours: colours[0],
+            sensorLights: sensorLights[0]
+        }));
+    } catch (error) {
+        ws.send(JSON.stringify({ action: 'error', message: error.message }));
+    }
+};
+
+export const updateLedStripColor = async (ws, connection, payload) => {
+    const { led_strip_id, colour_id } = payload;
+
+    console.log(`Received payload: led_strip_id=${led_strip_id}, colour_id=${colour_id}`);
+
+    // Validate the input data
+    if (led_strip_id === undefined || colour_id === undefined) {
+        console.error("Invalid input data: led_strip_id or colour_id is undefined");
+        ws.send(JSON.stringify({ action: 'updateLedStripColor', error: "Invalid input data: led_strip_id or colour_id is undefined" }));
+        return;
+    }
+
+    try {
+        await connection.execute("UPDATE LED_strip SET colour_ID = ? WHERE LED_strip_ID = ?", [colour_id, led_strip_id]);
+        const [rows] = await connection.execute("SELECT * FROM LED_strip WHERE LED_strip_ID = ?", [led_strip_id]);
+        if (rows.length > 0) {
+            ws.send(JSON.stringify({ action: 'updateLedStripColor', ledStrip: rows[0] }));
+        } else {
+            ws.send(JSON.stringify({ action: 'updateLedStripColor', error: "LED strip not found" }));
+        }
+    } catch (error) {
+        console.error("Failed to update LED strip color:", error);
+        ws.send(JSON.stringify({ action: 'updateLedStripColor', error: "Failed to update LED strip color" }));
+    }
+};
+
