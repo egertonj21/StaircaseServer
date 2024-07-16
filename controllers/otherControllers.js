@@ -54,7 +54,7 @@ export const getNoteDetails = async (ws, connection, payload) => {
 export const updateRange = async (ws, connection, payload) => {
     const { range_ID, range_name, lower_limit, upper_limit } = payload;
 
-    if (!range_name || lower_limit === undefined || upper_limit === undefined) {
+    if (!range_ID || !range_name || lower_limit === undefined || upper_limit === undefined) {
         ws.send(JSON.stringify({ action: 'updateRange', error: "Invalid input data" }));
         return;
     }
@@ -68,13 +68,23 @@ export const updateRange = async (ws, connection, payload) => {
         if (result.affectedRows === 0) {
             ws.send(JSON.stringify({ action: 'updateRange', error: "Range not found" }));
         } else {
-            ws.send(JSON.stringify({ action: 'updateRange', message: "Range settings updated successfully" }));
+            ws.send(JSON.stringify({
+                action: 'updateRange',
+                message: "Range settings updated successfully",
+                data: {
+                    range_ID,
+                    range_name,
+                    lower_limit,
+                    upper_limit
+                }
+            }));
         }
     } catch (error) {
         console.error("Failed to update range settings:", error);
         ws.send(JSON.stringify({ action: 'updateRange', error: "Failed to update range settings" }));
     }
 };
+
 
 export const getSensorLight = async (ws, connection) => {
     try {
