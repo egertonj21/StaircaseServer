@@ -13,22 +13,27 @@ export const getActions = async (ws, connection) => {
 export const getRanges = async (ws, connection) => {
     try {
         const [rows] = await connection.execute("SELECT range_ID, range_name, lower_limit, upper_limit FROM sensor_range");
-        ws.send(JSON.stringify({ action: 'getRanges', data: rows }));
+        const response = JSON.stringify({ action: 'getRanges', data: rows });
+        console.log(`Sending response for getRanges: ${response}`);
+        ws.send(response);
     } catch (error) {
         console.error(error);
-        ws.send(JSON.stringify({ action: 'getRanges', error: "Failed to fetch ranges" }));
+        ws.send(JSON.stringify({ action: 'error', message: "Failed to fetch ranges" }));
     }
 };
 
 export const getNotes = async (ws, connection) => {
     try {
         const [rows] = await connection.execute("SELECT note_ID, note_name, note_location FROM note");
-        ws.send(JSON.stringify({ action: 'getNotes', data: rows }));
+        const response = JSON.stringify({ action: 'getNotes', data: rows });
+        console.log(`Sending response for getNotes: ${response}`);
+        ws.send(response);
     } catch (error) {
         console.error(error);
-        ws.send(JSON.stringify({ action: 'getNotes', error: "Failed to fetch notes" }));
+        ws.send(JSON.stringify({ action: 'error', message: "Failed to fetch notes" }));
     }
 };
+
 
 export const getNoteDetails = async (ws, connection, payload) => {
     const { sensor_ID, range_ID } = payload;

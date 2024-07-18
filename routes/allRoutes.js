@@ -19,16 +19,82 @@ import {
     getMute,
     updateMute
 } from "../controllers/otherControllers.js";
+import { fetchInitialLedData, updateLedStripStatus, fetchLedStripId, fetchColourRgb, updateLedStripColor } from "../controllers/ledstripControllers.js";
+import { sendControlMessage, sendMuteMessage } from '../controllers/mqttAppControllers.js';
+import { getSensors, logSensorData, updateSensorStatus, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
 
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
         console.log('New client connected');
 
         ws.on('message', async (message) => {
+            console.log(`Received message: ${message}`);
             const data = JSON.parse(message);
             const { action, payload } = data;
 
+            console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
+
             switch (action) {
+                case 'getSensors':
+                    await getSensors(ws, connection);
+                    break;
+                case 'fetch_initial_data':
+                    await fetchInitialData(ws, connection);
+                    break;
+                case 'logSensorData':
+                    await logSensorData(ws, connection, payload);
+                    break;
+                case 'fetch_current_settings':
+                    await getCurrentSettings(ws, connection, payload);
+                    break;
+                case 'updateSensorStatus':
+                    await updateSensorStatus(ws, connection, payload);
+                    break;
+                case 'fetchSensorRanges':
+                    await fetchSensorRanges(ws, connection);
+                    break;
+                case 'fetchLightDuration':
+                    await fetchLightDuration(ws, connection);
+                    break;
+                case 'control_sensor':  
+                    await controlSensor(ws, connection, payload);
+                    break;
+                case 'control_mute':  
+                    await controlMute(ws, connection, payload);
+                    break;
+                case 'getLogs':  
+                    await getLogs(ws, connection);
+                    break;
+                case 'get_sensor_status':  
+                    await getSensorStatus(ws, connection);
+                    break;
+                case 'get_mute_status':  
+                    await getMuteStatus(ws, connection);
+                    break;
+                case 'update_mute_status':
+                    await updateMuteStatus(ws, connection, payload);
+                    break;
+                case 'sendControlMessage':
+                    await sendControlMessage(ws, payload.action);
+                    break;
+                case 'sendMuteMessage':
+                    await sendMuteMessage(ws);
+                    break
+                case 'fetch_initial_led_data':
+                    await fetchInitialLedData(ws, connection);
+                    break;
+                case 'updateLedStripStatus':
+                    await updateLedStripStatus(ws, connection, payload);
+                    break;
+                case 'fetchLedStripId':
+                    await fetchLedStripId(ws, connection, payload);
+                    break;
+                case 'fetchColourRgb':
+                    await fetchColourRgb(ws, connection, payload);
+                    break;
+                case 'updateLedStripColor': // New action
+                    await updateLedStripColor(ws, connection, payload);
+                    break;
                 case 'getActions':
                     await getActions(ws, connection);
                     break;
@@ -89,7 +155,7 @@ export default (wss, connection) => {
                 default:
                     console.error('Unknown action:', action);
                     ws.send(JSON.stringify({ action: 'error', message: `Unknown action: ${action}` }));
-                }
+            }
         });
 
         ws.on('close', () => {
