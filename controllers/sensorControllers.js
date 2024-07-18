@@ -99,24 +99,20 @@ export const logSensorData = async (ws, connection, payload) => {
 };
 
 export const updateSensorStatus = async (ws, connection, payload) => {
-    const { sensor_id, active, awake } = payload;
+    const { sensors_on } = payload;
+
+    if (sensors_on === undefined) {
+        console.error("Invalid input data: sensors_on is undefined");
+        ws.send(JSON.stringify({ action: 'update_sensor_status', error: "Invalid input data: sensors_on is undefined" }));
+        return;
+    }
+
     try {
-        const [rows] = await connection.execute("SELECT 1 FROM alive WHERE sensor_ID = ?", [sensor_id]);
-        if (rows.length === 0) {
-            await connection.execute("INSERT INTO alive (sensor_ID, active, awake) VALUES (?, ?, ?)", [sensor_id, active || 0, awake || 0]);
-            ws.send(JSON.stringify({ action: 'updateSensorStatus', message: "Sensor status inserted successfully" }));
-        } else {
-            if (active !== undefined) {
-                await connection.execute("UPDATE alive SET active = ? WHERE sensor_ID = ?", [active, sensor_id]);
-            }
-            if (awake !== undefined) {
-                await connection.execute("UPDATE alive SET awake = ? WHERE sensor_ID = ?", [awake, sensor_id]);
-            }
-            ws.send(JSON.stringify({ action: 'updateSensorStatus', message: "Sensor status updated successfully" }));
-        }
+        await connection.execute("UPDATE alive SET awake = ?", [sensors_on]);
+        ws.send(JSON.stringify({ action: 'update_sensor_status', data: { sensors_on } }));
     } catch (error) {
         console.error("Failed to update sensor status:", error);
-        ws.send(JSON.stringify({ action: 'updateSensorStatus', error: "Failed to update sensor status" }));
+        ws.send(JSON.stringify({ action: 'update_sensor_status', error: "Failed to update sensor status" }));
     }
 };
 
@@ -259,5 +255,4 @@ export const fetchInitialData = async (ws, connection) => {
         ws.send(JSON.stringify({ action: 'error', message: error.message }));
     }
 };
-
 
