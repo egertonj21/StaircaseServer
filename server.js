@@ -5,6 +5,7 @@ import cors from "cors";
 import sensorRoutes from "./routes/sensorRoutes.js";
 import ledstripRoutes from "./routes/ledstripRoutes.js";
 import otherRoutes from "./routes/otherRoutes.js";
+import mqttAppRoutes from "./routes/mqttAppRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -25,6 +26,8 @@ const init = async () => {
         sensorRoutes(wss, connection);
         ledstripRoutes(wss, connection);
         otherRoutes(wss, connection);
+        mqttAppRoutes(wss, connection);
+        
 
         app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
