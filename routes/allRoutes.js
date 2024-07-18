@@ -20,7 +20,7 @@ import {
     updateMute
 } from "../controllers/otherControllers.js";
 import { fetchInitialLedData, updateLedStripStatus, fetchLedStripId, fetchColourRgb, updateLedStripColor } from "../controllers/ledstripControllers.js";
-import { sendControlMessage, sendMuteMessage } from '../controllers/mqttAppControllers.js';
+import { sendControlMessage, sendMuteMessage, sendLEDTrigger, getLEDTriggerPayload } from '../controllers/mqttAppControllers.js';
 import { getSensors, logSensorData, updateSensorStatus, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
 
 export default (wss, connection) => {
@@ -35,6 +35,12 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+                case 'getLEDTriggerPayload':
+                    await getLEDTriggerPayload(ws, connection, payload);
+                    break;
+                case 'sendLEDTrigger':
+                    await sendLEDTrigger(ws, payload);
+                    break;
                 case 'getSensors':
                     await getSensors(ws, connection);
                     break;
@@ -92,7 +98,7 @@ export default (wss, connection) => {
                 case 'fetchColourRgb':
                     await fetchColourRgb(ws, connection, payload);
                     break;
-                case 'updateLedStripColor': // New action
+                case 'updateLedStripColor': 
                     await updateLedStripColor(ws, connection, payload);
                     break;
                 case 'getActions':
