@@ -126,7 +126,7 @@ export const updateSensorAlive = async (ws, connection, payload) => {
     }
 
     try {
-        await connection.execute("UPDATE alive SET alive = ?", [sensors_on]);
+        await connection.execute("UPDATE alive SET active = ?", [sensors_on]);
         ws.send(JSON.stringify({ action: 'update_sensor_status', data: { sensors_on } }));
     } catch (error) {
         console.error("Failed to update sensor status:", error);
