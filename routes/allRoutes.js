@@ -21,7 +21,7 @@ import {
 } from "../controllers/otherControllers.js";
 import { fetchInitialLedData, updateLedStripStatus, fetchLedStripId, fetchColourRgb, updateLedStripColor } from "../controllers/ledstripControllers.js";
 import { sendControlMessage, sendMuteMessage, sendLEDTrigger, getLEDTriggerPayload } from '../controllers/mqttAppControllers.js';
-import { getSensors, logSensorData, updateSensorStatus, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
+import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
 
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
@@ -55,6 +55,9 @@ export default (wss, connection) => {
                     break;
                 case 'updateSensorStatus':
                     await updateSensorStatus(ws, connection, payload);
+                    break;
+                case 'updateSensorAlive':
+                    await updateSensorAlive(ws, connection, payload);
                     break;
                 case 'fetchSensorRanges':
                     await fetchSensorRanges(ws, connection);

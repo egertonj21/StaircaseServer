@@ -116,6 +116,24 @@ export const updateSensorStatus = async (ws, connection, payload) => {
     }
 };
 
+export const updateSensorAlive = async (ws, connection, payload) => {
+    const { sensors_on } = payload;
+
+    if (sensors_on === undefined) {
+        console.error("Invalid input data: sensors_on is undefined");
+        ws.send(JSON.stringify({ action: 'update_sensor_status', error: "Invalid input data: sensors_on is undefined" }));
+        return;
+    }
+
+    try {
+        await connection.execute("UPDATE alive SET alive = ?", [sensors_on]);
+        ws.send(JSON.stringify({ action: 'update_sensor_status', data: { sensors_on } }));
+    } catch (error) {
+        console.error("Failed to update sensor status:", error);
+        ws.send(JSON.stringify({ action: 'update_sensor_status', error: "Failed to update sensor status" }));
+    }
+};
+
 export const fetchSensorRanges = async (ws, connection) => {
     try {
         const [rows] = await connection.execute("SELECT range_ID, lower_limit, upper_limit FROM sensor_range");
