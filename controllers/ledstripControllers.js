@@ -42,6 +42,36 @@ export const updateLedStripStatus = async (ws, connection, payload) => {
     }
 };
 
+export const updateLedStripAlive = async (ws, connection, payload) => {
+    const { led_strip_name, alive } = payload;
+
+    console.log(`Received payload: led_strip_name=${led_strip_name}, alive=${alive}`);
+
+    // Validate the input data
+    if (led_strip_name === undefined || alive === undefined) {
+        console.error("Invalid input data: led_strip_name or alive is undefined");
+        ws.send(JSON.stringify({ action: 'updateLedStripStatus', error: "Invalid input data: led_strip_name or alive is undefined" }));
+        return;
+    }
+
+    try {
+        // Check if the LED strip exists in the database
+        const [rows] = await connection.execute("SELECT 1 FROM LED_strip WHERE LED_strip_name = ?", [led_strip_name]);
+        if (rows.length === 0) {
+            // Insert new LED strip if it does not exist
+            await connection.execute("INSERT INTO LED_strip (LED_strip_name, LED_alive) VALUES (?, ?)", [led_strip_name, alive]);
+            ws.send(JSON.stringify({ action: 'updateLedStripStatus', message: "LED strip status inserted successfully" }));
+        } else {
+            // Update the LED strip status if it exists
+            await connection.execute("UPDATE LED_strip SET LED_alive = ? WHERE LED_strip_name = ?", [alive, led_strip_name]);
+            ws.send(JSON.stringify({ action: 'updateLedStripStatus', message: "LED strip status updated successfully" }));
+        }
+    } catch (error) {
+        console.error("Failed to update LED strip status:", error);
+        ws.send(JSON.stringify({ action: 'updateLedStripStatus', error: "Failed to update LED strip status" }));
+    }
+};
+
 export const fetchLedStripId = async (ws, connection, payload) => {
     const { led_strip_name } = payload;
     try {
