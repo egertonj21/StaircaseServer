@@ -22,7 +22,7 @@ import {
 import { fetchInitialLedData, updateLedStripStatus, updateLedStripAlive, fetchLedStripId, fetchColourRgb, updateLedStripColor } from "../controllers/ledstripControllers.js";
 import { sendControlMessage, sendMuteMessage, sendLEDTrigger, getLEDTriggerPayload } from '../controllers/mqttAppControllers.js';
 import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
-
+import {fetchAllPositions, fetchAllSecuritySequences, addSecuritySequence, updateSecuritySequence, deleteSecuritySequence} from "../controllers/securityModeControllers.js";
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
         console.log('New client connected');
@@ -35,6 +35,21 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+                case 'addSecuritySequence':
+                    await addSecuritySequence(ws, connection, payload);
+                    break;
+                case 'deleteSecuritySequence':
+                    await deleteSecuritySequence(ws, connection, payload);
+                    break;
+                case 'updateSecuritySequence':
+                    await updateSecuritySequence(ws, connection, payload);
+                    break;
+                case 'fetchAllSecuritySequences':
+                    await fetchAllSecuritySequences(ws, connection, payload);
+                    break;
+                case 'fetchAllPositions':
+                    await fetchAllPositions(ws, connection, payload);   
+                    break;
                 case 'getLEDTriggerPayload':
                     await getLEDTriggerPayload(ws, connection, payload);
                     break;
