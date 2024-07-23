@@ -1,3 +1,5 @@
+import mqttClient from '../mqttClient.js';
+
 export const getRangeLimits = async (ws, connection) => {
     try {
         const [rows] = await connection.execute(
@@ -79,4 +81,37 @@ export const determineLEDColor = async (ws, connection, payload) => {
         ws.send(JSON.stringify({ action: 'error', message: "Failed to determine LED colors" }));
     }
 };
+
+
+export const updateRangeSettings = async (ws, connection, payload) => {
+    try {
+        // Fetch the updated range settings from the database
+        const [rows] = await connection.execute(
+            "SELECT range_ID, upper_limit FROM sensor_range WHERE range_ID IN (1, 2)"
+        );
+
+        const closeRange = rows.find(row => row.range_ID === 1);
+        const midRange = rows.find(row => row.range_ID === 2);
+
+        if (!closeRange || !midRange) {
+            throw new Error("Failed to fetch updated range limits");
+        }
+
+        const closeUpperLimit = closeRange.upper_limit;
+        const midUpperLimit = midRange.upper_limit;
+
+        // Send MQTT message to update device range settings
+        const range_message = `${closeUpperLimit},${midUpperLimit}`;
+        mqttClient.publish('config/range_ledstrip', range_message, () => {
+            console.log('MQTT message sent:', range_message);
+        });
+
+        ws.send(JSON.stringify({ action: 'updateRangeSettings', message: "Range settings updated and sent successfully" }));
+    } catch (error) {
+        console.error(error);
+        ws.send(JSON.stringify({ action: 'error', message: "Failed to update range settings" }));
+    }
+};
+
+
 

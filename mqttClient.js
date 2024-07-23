@@ -1,7 +1,7 @@
 // mqttClient.js
 import mqtt from 'mqtt';
 
-const MQTT_SERVER = 'mqtt://192.168.0.93';
+const MQTT_SERVER = 'mqtt://192.168.0.93:1883';
 const client = mqtt.connect(MQTT_SERVER);
 
 client.on('connect', () => {

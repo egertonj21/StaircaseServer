@@ -1,6 +1,6 @@
 import express from "express";
 import { WebSocketServer } from "ws";
-import { createConnection } from "./dbconfig.js";
+import { createConnection} from "./dbconfig.js";
 import cors from "cors";
 import allRoutes from "./routes/allRoutes.js";
 
