@@ -24,6 +24,7 @@ import { sendControlMessage, sendMuteMessage, sendLEDTrigger, getLEDTriggerPaylo
 import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
 import {fetchAllPositions, fetchAllSecuritySequences, addSecuritySequence, updateSecuritySequence, deleteSecuritySequence} from "../controllers/securityModeControllers.js";
 import {fetchAllModes, updateActiveMode, fetchActiveMode} from "../controllers/modeSettingControllers.js";
+import {getRangeLimits, determineLEDColor} from "../controllers/ledstripConfigControllers.js";
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
         console.log('New client connected');
@@ -36,6 +37,12 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+                case 'determineLEDColor':
+                    await determineLEDColor(ws, connection, payload);
+                    break;
+                case 'getRangeLimits':
+                    await getRangeLimits(ws, connection, payload);
+                    break;
                 case 'fetchActiveMode':
                     await fetchActiveMode(ws, connection, payload);
                     break;
