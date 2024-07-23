@@ -27,27 +27,14 @@ export const getRangeLimits = async (ws, connection) => {
 };
 
 export const determineLEDColor = async (ws, connection, payload) => {
-    const { sensorName, distance } = payload;
+    const { sensorName } = payload;
 
-    if (typeof sensorName !== 'string' || typeof distance !== 'number') {
+    if (typeof sensorName !== 'string') {
         ws.send(JSON.stringify({ action: 'error', message: "Invalid input data" }));
         return;
     }
 
     try {
-        // Determine the range_ID based on the distance
-        const [rangeRows] = await connection.execute(
-            "SELECT range_ID FROM sensor_range WHERE ? BETWEEN lower_limit AND upper_limit",
-            [distance]
-        );
-
-        if (rangeRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: "Invalid distance range" }));
-            return;
-        }
-
-        const range_ID = rangeRows[0].range_ID;
-
         // Get the LED_strip_ID based on the sensor name
         const [ledStripRows] = await connection.execute(
             "SELECT LED_strip_ID FROM LED_strip WHERE LED_strip_name = ?",
@@ -61,42 +48,35 @@ export const determineLEDColor = async (ws, connection, payload) => {
 
         const LED_strip_ID = ledStripRows[0].LED_strip_ID;
 
-        // Get the colour_ID from the sensor_light table
+        // Get all color configurations for the given LED_strip_ID
         const [sensorLightRows] = await connection.execute(
-            "SELECT colour_ID FROM sensor_light WHERE LED_strip_ID = ? AND range_ID = ?",
-            [LED_strip_ID, range_ID]
+            "SELECT sl.range_ID, c.red, c.green, c.blue FROM sensor_light sl JOIN colour c ON sl.colour_ID = c.colour_ID WHERE sl.LED_strip_ID = ?",
+            [LED_strip_ID]
         );
 
         if (sensorLightRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: "No matching color found for the given sensor and range" }));
+            ws.send(JSON.stringify({ action: 'error', message: "No matching colors found for the given sensor" }));
             return;
         }
 
-        const colour_ID = sensorLightRows[0].colour_ID;
-
-        // Get the RGB values from the colour table
-        const [colourRows] = await connection.execute(
-            "SELECT red, green, blue FROM colour WHERE colour_ID = ?",
-            [colour_ID]
-        );
-
-        if (colourRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: "Invalid color ID" }));
-            return;
-        }
-
-        const { red, green, blue } = colourRows[0];
+        const colors = sensorLightRows.map(row => ({
+            range_ID: row.range_ID,
+            red: row.red,
+            green: row.green,
+            blue: row.blue
+        }));
 
         // Send the RGB values back via WebSocket
         const response = JSON.stringify({
             action: 'determineLEDColor',
-            data: { red, green, blue }
+            data: colors
         });
 
         console.log(`Sending response for determineLEDColor: ${response}`);
         ws.send(response);
     } catch (error) {
         console.error(error);
-        ws.send(JSON.stringify({ action: 'error', message: "Failed to determine LED color" }));
+        ws.send(JSON.stringify({ action: 'error', message: "Failed to determine LED colors" }));
     }
 };
+
