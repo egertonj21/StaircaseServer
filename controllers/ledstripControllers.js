@@ -245,4 +245,13 @@ export const gameLedTrigger = async (ws, connection, payload) => {
     }
 };
 
+export const checkLEDOn = async (ws, connection) => {
+    try {
+        const [rows] = await connection.execute("SELECT * FROM led_on_status");
+        ws.send(JSON.stringify({ action: 'checkLEDOn', data: rows }));
+    } catch (error) {
+        console.error(error);
+        ws.send(JSON.stringify({ action: 'checkLEDOn', error: "Failed to fetch actions" }));
+    }
+};
 
