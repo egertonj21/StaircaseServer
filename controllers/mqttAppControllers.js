@@ -142,37 +142,28 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
     }
 };
 
-export const updateLEDStatus = async (ws, connection) => {
+export const updateLEDStatus = async (ws, connection, payload) => {
     try {
-        // Update the led_on value to 1
-        const [result] = await connection.execute("UPDATE led_on_status SET led_on = 1 WHERE led_on_id = 1");
+        const [rows] = await connection.execute("SELECT * FROM led_on_status");
+        const currentStatus = rows[0].led_on;
+        const newStatus = currentStatus === 1 ? 0 : 1;
 
-        // Check if the update was successful
-        if (result.affectedRows > 0) {
-            ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { success: true, message: 'LED status updated to ON' } }));
+        // Update the led_on_status table
+        await connection.execute("UPDATE led_on_status SET led_on = ? WHERE led_on_id = 1", [newStatus]);
 
-            // Define the MQTT topics to publish to
-            const mqttTopics = ['control/led_on1', 'control/led_on2', 'control/led_on3'];
-            const message = "255,255,255,1"; // RGB values for white and flag to indicate the LEDs should be on
-
-            // Publish the MQTT message to turn on the LED strips
-            mqttTopics.forEach(topic => {
-                mqttClient.publish(topic, message, (err) => {
-                    if (err) {
-                        console.error(`Failed to publish MQTT message to ${topic}:`, err);
-                        ws.send(JSON.stringify({ action: 'updateLEDStatus', error: `Failed to send MQTT message to turn on LEDs for ${topic}` }));
-                    } else {
-                        console.log(`MQTT message sent to turn on LEDs for ${topic}`);
-                    }
-                });
-            });
-
-            ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { success: true, message: 'MQTT messages sent to turn on LEDs' } }));
-        } else {
-            ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { success: false, message: 'No rows were updated' } }));
-        }
+        // Publish MQTT message to turn LEDs on or off
+        const mqttTopic = "control/led_on";
+        const message = newStatus === 1 ? "255,255,255,1" : "0,0,0,0";
+        mqttClient.publish(mqttTopic, message, (err) => {
+            if (err) {
+                console.error('Failed to publish MQTT message:', err);
+                ws.send(JSON.stringify({ action: 'updateLEDStatus', error: 'Failed to update LED status' }));
+            } else {
+                ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { led_on: newStatus } }));
+            }
+        });
     } catch (error) {
-        console.error(error);
+        console.error("Failed to update LED status:", error);
         ws.send(JSON.stringify({ action: 'updateLEDStatus', error: "Failed to update LED status" }));
     }
 };
