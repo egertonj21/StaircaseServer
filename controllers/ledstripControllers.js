@@ -190,3 +190,59 @@ export const updateLedStripColor = async (ws, connection, payload) => {
     }
 };
 
+export const gameLedTrigger = async (ws, connection, payload) => {
+    const { sensor_id } = payload;
+
+    console.log(`Received payload: sensor_id = ${sensor_id}`);
+
+    try {
+        // Fetch the sensor name using sensor_id
+        const [sensorRows] = await connection.execute(
+            "SELECT sensor_name FROM sensor WHERE sensor_ID = ?",
+            [sensor_id]
+        );
+
+        if (sensorRows.length === 0) {
+            ws.send(JSON.stringify({
+                action: 'gameLedTrigger',
+                error: `No sensor found for sensor_id ${sensor_id}`
+            }));
+            return;
+        }
+
+        const sensorName = sensorRows[0].sensor_name;
+
+        // Construct the ledstrip name
+        const ledstripName = `ledstrip${sensorName}`;
+
+        // Fetch the corresponding LED_strip_ID using the constructed ledstrip name
+        const [ledStripRows] = await connection.execute(
+            "SELECT LED_strip_ID FROM LED_strip WHERE LED_strip_name = ?",
+            [ledstripName]
+        );
+
+        if (ledStripRows.length === 0) {
+            ws.send(JSON.stringify({
+                action: 'gameLedTrigger',
+                error: `No LED strip found for ledstrip name ${ledstripName}`
+            }));
+            return;
+        }
+
+        const ledStripID = ledStripRows[0].LED_strip_ID;
+
+        // Send the LED trigger command back to the client
+        ws.send(JSON.stringify({
+            action: 'gameLedTrigger',
+            data: { ledStripID }
+        }));
+    } catch (error) {
+        console.error("Failed to fetch LED strip ID:", error);
+        ws.send(JSON.stringify({
+            action: 'gameLedTrigger',
+            error: "Failed to fetch LED strip ID"
+        }));
+    }
+};
+
+
