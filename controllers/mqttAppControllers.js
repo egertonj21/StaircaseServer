@@ -151,19 +151,25 @@ export const updateLEDStatus = async (ws, connection, payload) => {
         // Update the led_on_status table
         await connection.execute("UPDATE led_on_status SET led_on = ? WHERE led_on_id = 1", [newStatus]);
 
-        // Publish MQTT message to turn LEDs on or off
-        const mqttTopic = "control/led_on";
+        // Topics to publish to
+        const mqttTopics = ["control/led_on1", "control/led_on2", "control/led_on3"];
         const message = newStatus === 1 ? "255,255,255,1" : "0,0,0,0";
-        mqttClient.publish(mqttTopic, message, (err) => {
-            if (err) {
-                console.error('Failed to publish MQTT message:', err);
-                ws.send(JSON.stringify({ action: 'updateLEDStatus', error: 'Failed to update LED status' }));
-            } else {
-                ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { led_on: newStatus } }));
-            }
+
+        // Publish MQTT message to turn LEDs on or off
+        mqttTopics.forEach(topic => {
+            mqttClient.publish(topic, message, (err) => {
+                if (err) {
+                    console.error(`Failed to publish MQTT message to ${topic}:`, err);
+                    ws.send(JSON.stringify({ action: 'updateLEDStatus', error: 'Failed to update LED status' }));
+                }
+            });
         });
+
+        // Send response to the WebSocket client
+        ws.send(JSON.stringify({ action: 'updateLEDStatus', data: { led_on: newStatus } }));
     } catch (error) {
         console.error("Failed to update LED status:", error);
         ws.send(JSON.stringify({ action: 'updateLEDStatus', error: "Failed to update LED status" }));
     }
 };
+
