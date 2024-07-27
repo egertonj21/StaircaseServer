@@ -34,23 +34,8 @@ export const sendMuteMessage = async (ws) => {
     });
 };
 
-export const sendLEDTrigger = async (ws, payload) => {
-    const { sensor_id, message } = payload;
-    const mqttTopic = `${MQTT_CONTROL_TOPIC}${sensor_id}`; 
-
-    mqttClient.publish(mqttTopic, message, (err) => {
-        if (err) {
-            console.error('Failed to publish MQTT message:', err);
-            ws.send(JSON.stringify({ action: 'LEDTrigger', error: 'Failed to send message' }));
-        } else {
-            ws.send(JSON.stringify({ action: 'LEDTrigger', message: `Sent ${message} to ${mqttTopic}` }));
-        }
-    });
-};
-
-
 export const getLEDTriggerPayload = async (ws, connection, payload) => {
-    const { sensor_id, distance } = payload;
+    const { sensor_id, distance, request_id } = payload;
 
     try {
         // Fetch the range data from the database
@@ -66,14 +51,14 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
         }
 
         if (range_id === null) {
-            ws.send(JSON.stringify({ action: 'error', message: 'Invalid distance' }));
+            ws.send(JSON.stringify({ action: 'error', message: 'Invalid distance', request_id }));
             return;
         }
 
         // Fetch the sensor_name from the sensor table
         const [sensorRows] = await connection.execute("SELECT sensor_name FROM sensor WHERE sensor_ID = ?", [sensor_id]);
         if (sensorRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: 'Sensor not found' }));
+            ws.send(JSON.stringify({ action: 'error', message: 'Sensor not found', request_id }));
             return;
         }
         const sensor_name = sensorRows[0].sensor_name;
@@ -82,7 +67,7 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
         const led_strip_name = `ledstrip${sensor_name}`;
         const [ledStripRows] = await connection.execute("SELECT LED_strip_ID FROM LED_strip WHERE LED_strip_name = ?", [led_strip_name]);
         if (ledStripRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: 'LED strip not found' }));
+            ws.send(JSON.stringify({ action: 'error', message: 'LED strip not found', request_id }));
             return;
         }
         const led_strip_id = ledStripRows[0].LED_strip_ID;
@@ -90,7 +75,7 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
         // Fetch the appropriate colour_ID from the sensor_light table
         const [sensorLightRows] = await connection.execute("SELECT colour_ID FROM sensor_light WHERE LED_strip_ID = ? AND range_ID = ?", [led_strip_id, range_id]);
         if (sensorLightRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: 'Sensor light configuration not found' }));
+            ws.send(JSON.stringify({ action: 'error', message: 'Sensor light configuration not found', request_id }));
             return;
         }
         const colour_id = sensorLightRows[0].colour_ID;
@@ -98,7 +83,7 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
         // Fetch the RGB values from the colour table
         const [colourRows] = await connection.execute("SELECT red, green, blue FROM colour WHERE colour_ID = ?", [colour_id]);
         if (colourRows.length === 0) {
-            ws.send(JSON.stringify({ action: 'error', message: 'Colour not found' }));
+            ws.send(JSON.stringify({ action: 'error', message: 'Colour not found', request_id }));
             return;
         }
         const { red, green, blue } = colourRows[0];
@@ -128,19 +113,44 @@ export const getLEDTriggerPayload = async (ws, connection, payload) => {
         const message = `${start_led}-${end_led}&${red},${green},${blue}&${duration}`;
         const responsePayload = {
             action: 'LEDTrigger',
-            payload: message
+            payload: message,
+            request_id
         };
 
         // Send the payload to the client
         ws.send(JSON.stringify(responsePayload));
+        
 
         // Send the MQTT message
-        await sendLEDTrigger(ws, { sensor_id, message });
+        await sendLEDTrigger(ws, { sensor_id, message, request_id });
     } catch (error) {
         console.error(error);
-        ws.send(JSON.stringify({ action: 'error', message: "Failed to fetch LED trigger payload" }));
+        ws.send(JSON.stringify({ action: 'error', message: "Failed to fetch LED trigger payload", request_id }));
     }
 };
+
+
+
+
+export const sendLEDTrigger = async (ws, payload) => {
+    const { sensor_id, message, request_id } = payload;
+    const mqttTopic = `${MQTT_CONTROL_TOPIC}${sensor_id}`;
+
+    mqttClient.publish(mqttTopic, message, (err) => {
+        if (err) {
+            console.error('Failed to publish MQTT message:', err);
+            ws.send(JSON.stringify({ action: 'LEDTrigger', error: 'Failed to send message', request_id }));
+        } else {
+            const responsePayload = { action: 'LEDTrigger', message: `Sent ${message} to ${mqttTopic}`, request_id };
+            ws.send(JSON.stringify(responsePayload));
+            
+        }
+    });
+};
+
+
+
+
 
 export const updateLEDStatus = async (ws, connection, payload) => {
     try {

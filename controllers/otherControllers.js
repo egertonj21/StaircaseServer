@@ -36,7 +36,7 @@ export const getNotes = async (ws, connection) => {
 
 
 export const getNoteDetails = async (ws, connection, payload) => {
-    const { sensor_ID, range_ID } = payload;
+    const { sensor_ID, range_ID, request_id } = payload;
     try {
         const [rows] = await connection.execute(
             `SELECT n.note_ID, n.note_name, n.note_location
@@ -46,15 +46,16 @@ export const getNoteDetails = async (ws, connection, payload) => {
             [sensor_ID, range_ID]
         );
         if (rows.length > 0) {
-            ws.send(JSON.stringify({ action: 'getNoteDetails', data: rows[0] }));  // Ensure a single object is returned
+            ws.send(JSON.stringify({ action: 'getNoteDetails', data: rows[0], request_id: request_id }));  // Include request_id in response
         } else {
-            ws.send(JSON.stringify({ action: 'getNoteDetails', error: "Note details not found" }));
+            ws.send(JSON.stringify({ action: 'getNoteDetails', error: "Note details not found", request_id: request_id }));
         }
     } catch (error) {
         console.error(error);
-        ws.send(JSON.stringify({ action: 'getNoteDetails', error: "Failed to fetch note details" }));
+        ws.send(JSON.stringify({ action: 'getNoteDetails', error: "Failed to fetch note details", request_id: request_id }));
     }
 };
+
 
 export const updateRange = async (ws, connection, payload) => {
     const { range_ID, range_name, lower_limit, upper_limit } = payload;
