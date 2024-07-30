@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 // Create WebSocket server
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ port: 8080, host: '0.0.0.0' });
 
 let connection;
 
@@ -24,8 +24,8 @@ const init = async () => {
         allRoutes(wss, connection);
         
 
-        app.listen(port, () => {
-            console.log(`Server is running on http://localhost:${port}`);
+        app.listen(port, '0.0.0.0', () => {  // Ensure Express listens on all interfaces
+            console.log(`Server is running on http://0.0.0.0:${port}`);
         });
 
     } catch (error) {
