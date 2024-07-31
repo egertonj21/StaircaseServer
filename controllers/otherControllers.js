@@ -46,7 +46,7 @@ export const getNoteDetails = async (ws, connection, payload) => {
             [sensor_ID, range_ID]
         );
         if (rows.length > 0) {
-            ws.send(JSON.stringify({ action: 'getNoteDetails', data: rows[0], request_id: request_id }));  // Include request_id in response
+            ws.send(JSON.stringify({ action: 'getNoteDetails', data: rows[0], request_id: request_id }));
         } else {
             ws.send(JSON.stringify({ action: 'getNoteDetails', error: "Note details not found", request_id: request_id }));
         }
