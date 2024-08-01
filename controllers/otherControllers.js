@@ -191,29 +191,29 @@ export const updateSelectedOutput = async (ws, connection, payload) => {
     }
 
     try {
-        // Delete existing entries for the sensor
-        const deleteResult = await connection.execute(
-            "DELETE FROM action_table WHERE sensor_ID = ?",
-            [sensor_ID]
-        );
-        console.log(`Deleted ${deleteResult[0].affectedRows} rows for sensor ID ${sensor_ID}`);
+        for (const output of range_outputs) {
+            const { range_ID, note_ID } = output;
+            if (range_ID === undefined || note_ID === undefined) {
+                ws.send(JSON.stringify({ action: 'updateSelectedOutput', error: "Invalid range_ID or note_ID" }));
+                return;
+            }
 
-        // Insert new entries for the sensor if there are any range outputs specified
-        if (range_outputs.length > 0) {
-            const insertPromises = range_outputs.map(output => {
-                if (output.range_ID && output.note_ID) { // Ensure that range_ID and note_ID are provided
-                    return connection.execute(
-                        "INSERT INTO action_table (sensor_ID, range_ID, note_ID) VALUES (?, ?, ?)",
-                        [sensor_ID, output.range_ID, output.note_ID]
-                    );
-                }
-                return Promise.reject(new Error("Missing range_ID or note_ID in some outputs"));
-            });
+            const [rows] = await connection.execute(
+                "SELECT 1 FROM action_table WHERE sensor_ID = ? AND range_ID = ?",
+                [sensor_ID, range_ID]
+            );
 
-            const insertResults = await Promise.all(insertPromises);
-            insertResults.forEach((result, index) => {
-                console.log(`Inserted row for range_ID ${range_outputs[index].range_ID} with note_ID ${range_outputs[index].note_ID}`);
-            });
+            if (rows.length > 0) {
+                await connection.execute(
+                    "UPDATE action_table SET note_ID = ? WHERE sensor_ID = ? AND range_ID = ?",
+                    [note_ID, sensor_ID, range_ID]
+                );
+            } else {
+                await connection.execute(
+                    "INSERT INTO action_table (sensor_ID, range_ID, note_ID) VALUES (?, ?, ?)",
+                    [sensor_ID, range_ID, note_ID]
+                );
+            }
         }
 
         ws.send(JSON.stringify({ action: 'updateSelectedOutput', message: "Selected outputs updated successfully" }));
@@ -222,6 +222,7 @@ export const updateSelectedOutput = async (ws, connection, payload) => {
         ws.send(JSON.stringify({ action: 'updateSelectedOutput', error: "Failed to update selected outputs" }));
     }
 };
+
 
 export const getLightDurations = async (ws, connection) => {
     try {
