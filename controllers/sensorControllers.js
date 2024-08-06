@@ -274,3 +274,65 @@ export const fetchInitialData = async (ws, connection) => {
     }
 };
 
+export const fetchAllPresets = async (ws, connection) => {
+    try {
+        const [rows] = await connection.execute("SELECT * FROM preset_note");
+        ws.send(JSON.stringify({ action: 'fetchAllPresets', data: rows }));
+    } catch (error) {
+        console.error("Failed to fetch preset notes:", error);
+        ws.send(JSON.stringify({ action: 'fetchAllPresets', error: "Failed to fetch preset notes:" }));
+    }
+};
+
+export const updateActionTableWithPreset = async (ws, connection, payload) => {
+    const { preset_name } = payload;
+
+    if (!preset_name) {
+        ws.send(JSON.stringify({ action: 'updateActionTableWithPreset', error: "Invalid input data: preset_name is undefined" }));
+        return;
+    }
+
+    try {
+        // Fetch preset notes based on preset_name
+        const [presetRows] = await connection.execute("SELECT * FROM preset_note WHERE preset_name = ?", [preset_name]);
+        if (presetRows.length === 0) {
+            ws.send(JSON.stringify({ action: 'updateActionTableWithPreset', error: "Invalid preset_name" }));
+            return;
+        }
+        const preset = presetRows[0];
+
+        // Fetch all positions
+        const [positionRows] = await connection.execute("SELECT * FROM position");
+
+        // Generate update queries based on the preset notes and positions
+        const queries = [];
+        for (const position of positionRows) {
+            let note_ID;
+            if (position.position_name === '1close') note_ID = preset['1close_note'];
+            else if (position.position_name === '1mid') note_ID = preset['1mid_note'];
+            else if (position.position_name === '1far') note_ID = preset['1far_note'];
+            else if (position.position_name === '2close') note_ID = preset['2close_note'];
+            else if (position.position_name === '2mid') note_ID = preset['2mid_note'];
+            else if (position.position_name === '2far') note_ID = preset['2far_note'];
+            else if (position.position_name === '3close') note_ID = preset['3close_note'];
+            else if (position.position_name === '3mid') note_ID = preset['3mid_note'];
+            else if (position.position_name === '3far') note_ID = preset['3far_note'];
+
+            if (note_ID !== undefined) {
+                queries.push(connection.execute(
+                    "UPDATE action_table SET note_ID = ? WHERE sensor_ID = ? AND range_ID = ?",
+                    [note_ID, position.sensor_ID, position.range_ID]
+                ));
+            }
+        }
+
+        // Execute all queries
+        await Promise.all(queries);
+
+        ws.send(JSON.stringify({ action: 'updateActionTableWithPreset', message: "Action table updated successfully" }));
+    } catch (error) {
+        console.error("Failed to update action table with preset:", error);
+        ws.send(JSON.stringify({ action: 'updateActionTableWithPreset', error: "Failed to update action table with preset" }));
+    }
+};
+

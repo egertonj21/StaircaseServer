@@ -21,7 +21,7 @@ import {
 } from "../controllers/otherControllers.js";
 import { fetchInitialLedData, updateLedStripStatus, updateLedStripAlive, fetchLedStripId, fetchColourRgb, updateLedStripColor, gameLedTrigger, checkLEDOn } from "../controllers/ledstripControllers.js";
 import { sendControlMessage, sendMuteMessage, sendLEDTrigger, getLEDTriggerPayload, updateLEDStatus } from '../controllers/mqttAppControllers.js';
-import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus } from "../controllers/sensorControllers.js";
+import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetchSensorRanges, fetchLightDuration, fetchInitialData, controlSensor, controlMute, getMuteStatus, getCurrentSettings, updateMuteStatus, fetchAllPresets, updateActionTableWithPreset } from "../controllers/sensorControllers.js";
 import {fetchAllPositions, fetchAllSecuritySequences, addSecuritySequence, updateSecuritySequence, deleteSecuritySequence} from "../controllers/securityModeControllers.js";
 import {fetchAllModes, updateActiveMode, fetchActiveMode} from "../controllers/modeSettingControllers.js";
 import {getRangeLimits, determineLEDColor, updateRangeSettings, setLEDColors} from "../controllers/ledstripConfigControllers.js";
@@ -38,6 +38,13 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+
+                case 'fetchAllPresets':
+                    await fetchAllPresets(ws, connection, payload);
+                    break;
+                case 'updateActionTableWithPreset':
+                    await updateActionTableWithPreset(ws, connection, payload);
+                    break;
 
                 case 'fetchGameLength':
                     await fetchGameLength(ws, connection);
