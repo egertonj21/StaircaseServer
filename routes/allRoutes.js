@@ -25,7 +25,7 @@ import { getSensors, logSensorData, updateSensorStatus, updateSensorAlive, fetch
 import {fetchAllPositions, fetchAllSecuritySequences, addSecuritySequence, updateSecuritySequence, deleteSecuritySequence} from "../controllers/securityModeControllers.js";
 import {fetchAllModes, updateActiveMode, fetchActiveMode} from "../controllers/modeSettingControllers.js";
 import {getRangeLimits, determineLEDColor, updateRangeSettings, setLEDColors} from "../controllers/ledstripConfigControllers.js";
-import { handleGameSequencePayload } from "../controllers/gameControllers.js";
+import { handleGameSequencePayload, fetchGameLength, updateGameLength } from "../controllers/gameControllers.js";
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
         console.log('New client connected');
@@ -38,6 +38,13 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+
+                case 'fetchGameLength':
+                    await fetchGameLength(ws, connection);
+                    break;
+                case 'updateGameLength':
+                    await updateGameLength(ws, connection, payload);
+                    break;
 
                 case 'handleGameSequencePayload':
                     await handleGameSequencePayload(ws, connection, payload);

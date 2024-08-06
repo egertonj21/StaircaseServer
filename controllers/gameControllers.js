@@ -45,3 +45,35 @@ export const handleGameSequencePayload = async (ws, connection, payload) => {
         ws.send(JSON.stringify({ action: 'error', message: 'Failed to process game sequence payload' }));
     }
 };
+
+
+export const fetchGameLength = async (ws, connection) => {
+    try {
+        const [rows] = await connection.execute("SELECT * FROM game_length");
+        ws.send(JSON.stringify({ action: 'fetchGameLength', data: rows }));
+    } catch (error) {
+        console.error("Failed to fetch game length:", error);
+        ws.send(JSON.stringify({ action: 'fetchGameLength', error: "Failed to fetch game length" }));
+    }
+};
+
+export const updateGameLength = async (ws, connection, payload) => {
+    const { length } = payload;
+
+    if (!length) {
+        console.error("Invalid input data: length is undefined");
+        ws.send(JSON.stringify({ action: 'updateGameLength', error: "Invalid input data: length is undefined" }));
+        return;
+    }
+
+    try {
+        await connection.execute(
+            "UPDATE game_length SET length = ? WHERE length_ID = 1",
+            [length]
+        );
+        ws.send(JSON.stringify({ action: 'updateGameLength', message: "Game Length updated successfully" }));
+    } catch (error) {
+        console.error("Failed to update Game Length:", error);
+        ws.send(JSON.stringify({ action: 'updateGameLength', error: "Failed to update Game Length" }));
+    }
+};
