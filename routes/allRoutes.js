@@ -26,6 +26,7 @@ import {fetchAllPositions, fetchAllSecuritySequences, addSecuritySequence, updat
 import {fetchAllModes, updateActiveMode, fetchActiveMode} from "../controllers/modeSettingControllers.js";
 import {getRangeLimits, determineLEDColor, updateRangeSettings, setLEDColors} from "../controllers/ledstripConfigControllers.js";
 import { handleGameSequencePayload, fetchGameLength, updateGameLength } from "../controllers/gameControllers.js";
+import { broadcast } from "../server.js";
 export default (wss, connection) => {
     wss.on('connection', (ws) => {
         console.log('New client connected');
@@ -38,6 +39,11 @@ export default (wss, connection) => {
             console.log(`Received action: ${action}, payload: ${JSON.stringify(payload)}`);
 
             switch (action) {
+
+                case 'alarm':
+                    console.log('Broadcasting alarm message');
+                    broadcast({ type: 'alarm', payload });
+                    break;
 
                 case 'fetchAllPresets':
                     await fetchAllPresets(ws, connection, payload);
